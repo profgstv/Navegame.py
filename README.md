@@ -13,7 +13,7 @@ Para inicialização é necessário ter instalado o [Python](https://wiki.python
 É recomendado rodar pelo terminal, dentro do diretório do jogo e chamando com `python`:
 
 ```
-$ python Naves.pygame
+$ python Navegame.py.pygame
 ```
 
 ### Batocera
