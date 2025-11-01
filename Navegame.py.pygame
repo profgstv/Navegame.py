@@ -1,0 +1,167 @@
+import pygame
+import math
+import save_score
+from pygame.locals import *
+from sys import exit
+from random import randint
+
+pygame.init()
+save_score.reading_data()
+
+start_menu = True
+game_over = False
+
+vel = 5
+score = 0
+highscore = save_score.highscore
+
+def quit_game():
+    save_score.writing_data()
+    pygame.quit()
+    exit()
+
+class screen:
+    width = pygame.display.Info().current_w
+    height = pygame.display.Info().current_h
+    canva = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
+    pygame.display.set_caption('Navegame.py')
+
+    font_start_menu0 = pygame.font.Font(None, int(width*0.1))
+    start_game_message = font_start_menu0.render("Navegame.py", True, (255, 255, 255))
+    font_start_menu1 =  pygame.font.Font(None, int(width*0.03))
+    start_game_button_press = font_start_menu1.render("Aperte 'Enter' para Começar ou 'Esc' para Sair", True, (255, 255, 255))
+
+    font_score = pygame.font.Font(None, int(width*0.02))
+    font_highscore = pygame.font.Font(None, int(width*0.02))
+    count = font_score.render(f"Pontuação: {score}", True, (255, 255, 255))
+    high_count = font_highscore.render(f"Recorde: {highscore}", True, (255, 255, 255))
+
+    font_game_over0 = pygame.font.Font(None, int(width*0.1))
+    game_over_message0 = font_game_over0.render("Você Perdeu!", True, (255, 255, 255))
+    font_game_over1 = pygame.font.Font(None, int(width*0.03))
+    game_over_message1 = font_game_over1.render("Aperte 'Enter' para Recomeçar ou 'Esc' para Sair", True, (255, 255, 255))
+
+class background:
+    def color(rgb):
+        pygame.draw.rect(screen.canva, rgb, (0, 0, screen.width, screen.height))
+        return
+
+class player:
+    r = screen.width*0.025
+    x = screen.width*0.05
+    y = screen.height*0.5
+
+    def ball(rgb):
+        pygame.draw.circle(screen.canva, rgb, (player.x, player.y), player.r)
+        return
+
+    def control(key):
+        global score
+        global highscore
+        global start_menu
+        global game_over
+
+        if key[pygame.K_RETURN] and start_menu:
+            start_menu = False
+        elif key[pygame.K_RETURN] and game_over:
+            game_over = False
+            score = 0
+            highscore = save_score.highscore
+            screen.count = screen.font_score.render(f"Pontuação: {score}", True, (255, 255, 255))
+            screen.high_count = screen.font_highscore.render(f"Recorde: {highscore}", True, (255, 255, 255))
+        elif key[pygame.K_UP] and player.y >= player.r*3 and not game_over and not start_menu:
+            player.y -= vel
+        elif key[pygame.K_DOWN] and player.y <= screen.height - player.r*1.05 and not game_over and not start_menu:
+            player.y += vel
+        elif key[pygame.K_ESCAPE]:
+            quit_game()
+        return
+
+class enemy:
+    r = []
+    x = []
+    y = []
+    v = []
+    ball_color = []
+
+    for i in range(5):
+        r.append(screen.width*randint(10, 15)/1000)
+        x.append(screen.width)
+        y.append(randint(int(screen.width*0.1), screen.height - int(r[i]*1.05)))
+        v.append(vel*randint(98, 108)/100)
+        ball_color.append((randint(30, 255), randint(30, 255), randint(30, 255)))
+
+    def ball(self, i):
+        pygame.draw.circle(screen.canva, self.ball_color[i], (self.x[i], self.y[i]), self.r[i])
+        return
+
+    def movement(self, i):
+        global score
+        if not game_over:
+            self.x[i] -= self.v[i]
+
+            if self.x[i] <= 0:
+                score += 1
+                screen.count = screen.font_score.render(f"Pontuação: {score}", True, (255, 255, 255))
+
+                self.r[i] = screen.width*randint(10, 15)/1000
+                self.x[i] = screen.width
+                self.y[i] = randint(int(screen.width*0.1), screen.height - int(self.r[i]*1.05))
+                self.v[i] = vel*randint(110, 150)/100
+                self.ball_color[i] = (randint(30, 255), randint(30, 255), randint(30, 255))
+            
+        return
+    
+    def colision(self, i): # Usar math.dist(p, q), onde p e q são as coordenadas de cada ponto
+        global score
+        global game_over
+        if math.dist((self.x[i], self.y[i]), (player.x, player.y)) <= self.r[i] + player.r:
+            game_over = True
+            
+            self.r[i] = screen.width*randint(10, 15)/1000
+            self.x[i] = screen.width
+            self.y[i] = randint(int(screen.width*0.1), screen.height - int(self.r[i]*1.05))
+            self.v[i] = vel*randint(110, 150)/100
+            self.ball_color[i] = (randint(30, 255), randint(30, 255), randint(30, 255))
+
+while True:
+    key = pygame.key.get_pressed()
+
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            quit_game()
+
+    player.control(key)
+
+    background.color((0, 0, 0))
+    if start_menu:
+        screen.canva.blit(screen.start_game_message, (screen.width*0.5 - screen.start_game_message.get_width()/2, screen.height*0.5 - screen.start_game_message.get_height()/2))
+        screen.canva.blit(screen.start_game_button_press, (screen.width*0.5 - screen.start_game_button_press.get_width()/2, screen.height*0.5 + screen.start_game_message.get_height() - screen.start_game_button_press.get_height()/2))
+
+    elif game_over:
+        save_score.new_score(score)
+
+        screen.canva.blit(screen.count, (screen.width*0.4 - screen.count.get_width(), screen.width*0.005))
+        screen.canva.blit(screen.high_count, (screen.width*0.6, screen.width*0.005))
+
+        screen.canva.blit(screen.game_over_message0, (screen.width*0.5 - screen.game_over_message0.get_width()/2, screen.height*0.5 - screen.game_over_message0.get_height()/2))
+        screen.canva.blit(screen.game_over_message1, (screen.width*0.5 - screen.game_over_message1.get_width()/2, screen.height*0.5 + screen.game_over_message0.get_height() - screen.game_over_message1.get_height()/2))
+
+    else:
+        screen.canva.blit(screen.count, (screen.width*0.4 - screen.count.get_width(), screen.width*0.005))
+        screen.canva.blit(screen.high_count, (screen.width*0.6, screen.width*0.005))
+
+        if score >= highscore:
+            highscore = score
+            screen.high_count = screen.font_highscore.render(f"Recorde: {highscore}", True, (255, 255, 255))
+
+        player.ball((255, 255, 255))
+
+        if int(score/5 + 1) <= 5:
+            difficulty = int(score/5 + 1)
+        for i in range(difficulty):
+            enemy.ball(enemy, i)
+            enemy.movement(enemy, i)
+            enemy.colision(enemy, i)
+
+    pygame.display.update()
